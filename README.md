@@ -45,6 +45,8 @@ Consulta el archivo [`LICENSE`](LICENSE) para más detalle.
 
 ## 📦 Entrega final
 - Crear un **Release** con etiqueta `v1.0-hackathon` con README actualizado, instrucciones y demo.
+- Powerpoint proyecto final
+- Mockup si aplica
 
 ## 👥 Créditos
 Incluye autores del equipo y mentores si aplica.
