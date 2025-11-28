@@ -9,13 +9,12 @@
 
     <body class="container">
         <header>
-            <?php require __DIR__. '/../controller/c_upperMenu.php'; ?>
+            <?php require __DIR__. '/../controller/c_menuSuperior.php'; ?>
         </header>
         <section id="blocllista">
             <?php require __DIR__. '/../controller/c_home.php'; ?>
         </section>
         
-        <?php require __DIR__. '/../controller/c_lowerMenu.php'; ?>
     </body>
     
 </html>
