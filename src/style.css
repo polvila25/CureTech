@@ -495,6 +495,129 @@ header {
   transform: translateY(0);
 }
 
+/* Agregando estilos para la sección de resultados de cálculo de indicadores */
+.resultado-calculo {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 2rem;
+}
+
+.resultado-calculo h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--accent-tertiary);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.resultado-calculo > p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+/* Contenedor de cajas de pacientes actualizados */
+.cajas-pacientes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Cada caja de paciente en resultado */
+.caja-paciente {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 18%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+}
+
+.caja-paciente:hover {
+  border-color: var(--accent-secondary);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(6, 182, 212, 0.15);
+}
+
+.caja-paciente h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+  transition: color 0.3s ease;
+}
+
+.caja-paciente:hover h3 {
+  color: var(--accent-secondary);
+}
+
+.caja-paciente p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0.5rem 0;
+  line-height: 1.5;
+}
+
+.caja-paciente p strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Mensaje de éxito/error en resultado */
+.caja-paciente p:last-child {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  font-weight: 500;
+  color: var(--accent-tertiary);
+}
+
+.caja-paciente p:last-child[style*="color:green"] {
+  color: var(--accent-tertiary) !important;
+}
+
+/* Contenedor del formulario de recalcular */
+.resultado-calculo > div {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.resultado-calculo form {
+  display: flex;
+  gap: 1rem;
+}
+
+.resultado-calculo button {
+  padding: 0.85rem 1.75rem;
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
+  border: 1px solid var(--accent-primary);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.resultado-calculo button:hover {
+  background-color: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+  box-shadow: 0 8px 16px rgba(6, 182, 212, 0.25);
+  transform: translateY(-2px);
+}
+
+.resultado-calculo button:active {
+  transform: translateY(0);
+}
+
 /* Responsivo */
 @media (max-width: 1400px) {
   .pacientes-container {
@@ -591,6 +714,32 @@ header {
     font-size: 0.95rem;
     min-width: 120px;
   }
+
+  /* Responsivo para resultado-calculo */
+  .resultado-calculo {
+    padding: 1.5rem;
+  }
+
+  .resultado-calculo h1 {
+    font-size: 1.5rem;
+  }
+
+  .resultado-calculo > p {
+    font-size: 0.95rem;
+  }
+
+  .cajas-pacientes {
+    gap: 1rem;
+  }
+
+  .caja-paciente {
+    width: calc(50% - 0.5rem);
+  }
+
+  .resultado-calculo button {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -686,5 +835,41 @@ header {
     width: 100%;
     min-width: auto;
     padding: 0.75rem 1rem;
+  }
+
+  /* Responsivo para resultado-calculo */
+  .resultado-calculo {
+    padding: 1rem;
+  }
+
+  .resultado-calculo h1 {
+    font-size: 1.25rem;
+  }
+
+  .resultado-calculo > p {
+    font-size: 0.9rem;
+  }
+
+  .cajas-pacientes {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .caja-paciente {
+    width: 100%;
+  }
+
+  .resultado-calculo > div {
+    flex-direction: column;
+  }
+
+  .resultado-calculo form {
+    flex-direction: column;
+  }
+
+  .resultado-calculo button {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.9rem;
   }
 }

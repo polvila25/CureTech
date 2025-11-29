@@ -56,7 +56,7 @@ $PESOS_SOCIAL = array(
     "pobreza economica" => 4,
     "aislamiento" => 4,
     "fumador activo" => 3,
-    "Depresion" => 3,
+    "depresion" => 3,
     "problemas vivienda" => 3,
     "obesidad" => 3,
     "barrera idioma" => 2
@@ -134,7 +134,7 @@ function calcular_indicador($p) {
     $soc = isset($p['factor_social']) ? $p['factor_social'] : (isset($p['social']) ? $p['social'] : array());
     if (!is_array($soc)) $soc = array();
     foreach ($soc as $s) {
-        $key = trim($s);
+        $key = trim(strtolower($s));
         if (isset($PESOS_SOCIAL[$key])) $indice += $PESOS_SOCIAL[$key];
     }
 
@@ -157,34 +157,98 @@ function update_indicador_db($id, $indicador) {
     $sql = "UPDATE pacientes SET indicador = ? WHERE id = ?";
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
+        error_log("[pesos_modelo] prepare failed: " . $conn->error);
+        $err = $conn->error;
         $conn->close();
-        return false;
+        return array('ok' => false, 'error' => $err);
     }
     // bind as string and int
     $stmt->bind_param('di', $indicador, $id);
     $res = $stmt->execute();
+    if ($res === false) {
+        $err = $stmt->error ?: $conn->error;
+        error_log("[pesos_modelo] execute failed for id={$id}: " . $err);
+        $stmt->close();
+        $conn->close();
+        return array('ok' => false, 'error' => $err);
+    }
+
+    $affected = $stmt->affected_rows;
     $stmt->close();
     $conn->close();
-    return $res !== false;
+    return array('ok' => true, 'affected_rows' => $affected);
 }
 
 function calcular_y_actualizar_todos() {
-    $pacientes = getPacientes(); // m_getpacientes devuelve arrays con campos json decodificados
+    $pacientes = getPacientes();
     $resultados = array();
-    foreach ($pacientes as $row) {
-        // Preparar estructura esperada por calcular_indicador
-        $p = $row;
-        // Asegurarse claves
-        if (!isset($p['enfermedades_cronicas'])) $p['enfermedades_cronicas'] = array();
-        if (!isset($p['enfermedades_actuales'])) $p['enfermedades_actuales'] = array();
-        if (!isset($p['factor_social'])) $p['factor_social'] = array();
 
-        $indicador = calcular_indicador($p);
-        $ok = update_indicador_db($row['id'], $indicador);
-        $resultados[] = array('id' => $row['id'], 'nombre' => $row['nombre'], 'indicador' => $indicador, 'updated' => $ok);
+    foreach ($pacientes as $row) {
+        if (!isset($row['enfermedades_cronicas'])) $row['enfermedades_cronicas'] = array();
+        if (!isset($row['enfermedades_actuales'])) $row['enfermedades_actuales'] = array();
+        if (!isset($row['factor_social'])) $row['factor_social'] = array();
+
+        // Calcular indicador
+        $indicador = calcular_indicador($row);
+
+        // Calcular estado
+        $estado = calcular_estado($indicador);
+
+        // Guardar en BBDD
+        $upd = update_indicador_y_estado_db($row['id'], $indicador, $estado);
+
+        $resultados[] = array(
+            'id' => $row['id'],
+            'nombre' => $row['nombre'],
+            'indicador' => $indicador,
+            'estado' => $estado,
+            'updated' => $upd['ok'],
+            'msg' => $upd['ok'] ? "OK ({$upd['affected_rows']})" : ($upd['error'] ?? 'error')
+        );
     }
+
     return $resultados;
 }
+
+function calcular_estado($indicador) {
+    if ($indicador >= 42) {
+        return "CRÍTICO";
+    } elseif ($indicador >= 23) {
+        return "MEDIO";
+    } elseif ($indicador >= 8) {
+        return "BAJO";
+    } else {
+        return "SANO";
+    }
+}
+
+function update_indicador_y_estado_db($id, $indicador, $estado) {
+    $conn = connectaDB();
+    $sql = "UPDATE pacientes SET indicador = ?, estado_paciente = ? WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        error_log("[pesos_modelo] prepare failed: " . $conn->error);
+        return array('ok' => false, 'error' => $conn->error);
+    }
+
+    $stmt->bind_param('dsi', $indicador, $estado, $id);
+    $res = $stmt->execute();
+
+    if ($res === false) {
+        $err = $stmt->error ?: $conn->error;
+        error_log("[pesos_modelo] execute failed for id={$id}: " . $err);
+        $stmt->close();
+        $conn->close();
+        return array('ok' => false, 'error' => $err);
+    }
+
+    $affected = $stmt->affected_rows;
+    $stmt->close();
+    $conn->close();
+    return array('ok' => true, 'affected_rows' => $affected);
+}
+
 
 // Si se ejecuta por CLI, calcular y mostrar resultados
 if (php_sapi_name() === 'cli') {

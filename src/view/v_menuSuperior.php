@@ -10,5 +10,6 @@
     <a href="index.php?action=visitasdiarias">Visitas Diarias</a>
     <a href="index.php?action=pacientes">Pacientes</a>
     <a href="index.php?action=alertas">Alertas</a>
+    <li><a href="index.php?action=calcularindicadores">Recalcular Indicadores</a></li>
   </div>
 </header>
