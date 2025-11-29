@@ -1,1 +1,1 @@
-<?php require __DIR__ . "/../view/v_home.php"; ?>
+<?php require __DIR__ . "/../view/v_menuSuperior.php"; ?>
