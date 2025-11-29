@@ -1,9 +1,13 @@
 <?php   
-    $action = $_GET['action'] ?? 'home';
+    $action = $_GET['action'] ?? 'visitasdiarias';
 
     switch ($action) {
-        case 'home':
-            require __DIR__ . '/resource/r_home.php';
+        case 'visitasdiarias':
+            require __DIR__ . '/resource/r_visitasdiarias.php';
+            break;
+
+        case 'pacientes':
+            require __DIR__ . '/resource/r_pacientes.php';
             break;
         
         default:
