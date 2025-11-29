@@ -6,6 +6,8 @@
     // Obtener los pacientes de la base de datos
     $pacientes = getPacientes();
 
+    
+
     require __DIR__. '/../view/v_pacientes.php';
 
 ?>

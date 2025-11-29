@@ -41,8 +41,9 @@ function updatePaciente(int $id, array $data): bool {
     $indicador = $data['indicador'] !== null ? $data['indicador'] : null;
     $colesterol = $data['colesterol'] !== null ? $data['colesterol'] : null;
 
+
     // Para simplicidad convertimos todos a strings en bind (mysqli acepta)
-    $types = str_repeat('s', 14);
+    $types = str_repeat('s', 13);
     $stmt->bind_param(
         $types,
         $nombre,
