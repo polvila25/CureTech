@@ -1,19 +1,39 @@
 <?php
 
+require_once __DIR__ . '/m_conectaDB.php';
+
 /**
- * Selecciona hasta $limit pacientes para visitas diarias.
- * - Filtra pacientes con `visita_pendiente` == 1 (si hay); si no hay ninguno, usa todos.
- * - Ordena por fecha de última visita (la más lejana / antigua primero).
- * - Agrupa por `estado_paciente` (critico, bajo, normal, revision) y selecciona
- *   según una distribución por defecto para obtener un total de $limit.
- *
- * Entrada: array de pacientes (como devuelve `getPacientes()`)
- * Salida: array con claves:
- *   - 'selected' => lista de pacientes seleccionados (máx $limit)
- *   - 'by_group' => arrays por grupo con los pacientes ordenados
+ * Obtener candidatos desde la base de datos y seleccionar visitas diarias.
+ * Lee la tabla `pacientes` y realiza el mismo agrupado/orden que la versión anterior,
+ * pero obteniendo los registros directamente desde MySQL.
  */
-function visitas_diarias($pacientes, $limit = 30, $distribution = null)
+function visitas_diarias($limit = 30, $distribution = null)
 {
+    $conn = connectaDB();
+
+    // Primer intento: seleccionar pacientes con visita_pendiente = 1
+    $sql = "SELECT id,nombre,edad,enfermedades_cronicas,enfermedades_actuales,tension,glucosa,visita_pendiente,tipo_visita,factor_social,estado_paciente,fecha_ultima_visita,indicador,colesterol FROM pacientes WHERE visita_pendiente = 1";
+    $result = $conn->query($sql);
+    $pacientes = array();
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $pacientes[] = $row;
+        }
+    } else {
+        // Si no hay candidatos marcados, seleccionar todos
+        $result2 = $conn->query("SELECT id,nombre,edad,enfermedades_cronicas,enfermedades_actuales,tension,glucosa,visita_pendiente,tipo_visita,factor_social,estado_paciente,fecha_ultima_visita,indicador,colesterol FROM pacientes");
+        if ($result2) {
+            while ($row = $result2->fetch_assoc()) {
+                $pacientes[] = $row;
+            }
+            $result2->free();
+        }
+        if ($result) $result->free();
+    }
+    $conn->close();
+
+    // Ahora reutilizamos la lógica de agrupado/orden selección en memoria
+
     // Default distribution (porcentaje) si no se pasa:
     if ($distribution === null) {
         $distribution = array(
@@ -24,18 +44,6 @@ function visitas_diarias($pacientes, $limit = 30, $distribution = null)
         );
     }
 
-    // Filtrar candidatos: preferir los que tienen visita_pendiente == 1
-    $candidates = array();
-    foreach ($pacientes as $p) {
-        if (isset($p['visita_pendiente']) && (int)$p['visita_pendiente'] === 1) {
-            $candidates[] = $p;
-        }
-    }
-    if (count($candidates) === 0) {
-        // si no hay visitas pendientes explícitas, considerar todos
-        $candidates = $pacientes;
-    }
-
     // Helpers
     $to_ts = function ($date) {
         if (empty($date)) return 0;
@@ -43,7 +51,6 @@ function visitas_diarias($pacientes, $limit = 30, $distribution = null)
         return $t === false ? 0 : $t;
     };
 
-    // Clasificar estado en 4 grupos (normal por defecto)
     $classify_estado = function ($estado) {
         $s = strtolower(trim((string)$estado));
         if ($s === '') return 'normal';
@@ -55,29 +62,26 @@ function visitas_diarias($pacientes, $limit = 30, $distribution = null)
         return 'normal';
     };
 
-    // Inicializar grupos
     $groups = array('critico' => array(), 'bajo' => array(), 'normal' => array(), 'revision' => array());
 
-    // Rellenar grupos y añadir campo ts_last_visit (timestamp de fecha_ultima_visita)
-    foreach ($candidates as $p) {
+    foreach ($pacientes as $p) {
         $ts = $to_ts($p['fecha_ultima_visita'] ?? null);
         $grp = $classify_estado($p['estado_paciente'] ?? '');
         $p['_ts_last_visit'] = $ts;
         $groups[$grp][] = $p;
     }
 
-    // Ordenar cada grupo por fecha de última visita asc (más antigua primero)
     foreach ($groups as $k => &$arr) {
         usort($arr, function ($a, $b) {
             $ta = $a['_ts_last_visit'] ?? 0;
             $tb = $b['_ts_last_visit'] ?? 0;
             if ($ta == $tb) return 0;
-            return ($ta < $tb) ? -1 : 1; // más antiguo (menor ts) primero
+            return ($ta < $tb) ? -1 : 1;
         });
     }
     unset($arr);
 
-    // Calcular cuotas por grupo en base a $distribution
+    // Calcular cuotas
     $quotas = array();
     $sum = 0;
     foreach ($distribution as $k => $v) {
@@ -85,7 +89,6 @@ function visitas_diarias($pacientes, $limit = 30, $distribution = null)
         $quotas[$k] = $q;
         $sum += $q;
     }
-    // Ajustar por resto para que la suma sea $limit
     $remaining = $limit - $sum;
     $order_for_fill = array('normal', 'critico', 'bajo', 'revision');
     $i = 0;
@@ -96,7 +99,6 @@ function visitas_diarias($pacientes, $limit = 30, $distribution = null)
         $i++;
     }
 
-    // Selección inicial según cuotas
     $selected = array();
     foreach (array('critico', 'bajo', 'normal', 'revision') as $grp) {
         $take = $quotas[$grp] ?? 0;
@@ -107,7 +109,6 @@ function visitas_diarias($pacientes, $limit = 30, $distribution = null)
         }
     }
 
-    // Si no llegamos a $limit, rellenar con restantes por prioridad de grupo
     if (count($selected) < $limit) {
         $needed = $limit - count($selected);
         $priority_groups = array('critico', 'bajo', 'normal', 'revision');
@@ -122,10 +123,8 @@ function visitas_diarias($pacientes, $limit = 30, $distribution = null)
         }
     }
 
-    // Truncar al límite por si sobra
     if (count($selected) > $limit) $selected = array_slice($selected, 0, $limit);
 
-    // Devolver selección y detalle por grupo
     return array(
         'selected' => $selected,
         'by_group' => $groups,
